@@ -1,0 +1,209 @@
+"use client";
+
+import React, { useState } from "react";
+import { MessageSquare, BookOpen, RotateCcw } from "lucide-react";
+import QuestionInput from "./QuestionInput";
+import ExampleQuestions from "./ExampleQuestions";
+import EmptyState from "./EmptyState";
+import LoadingState from "./LoadingState";
+import ErrorState from "./ErrorState";
+import AnswerCard from "./AnswerCard";
+import { SourceItem } from "./SourceCard";
+import { HistoryItem } from "./HistoryPanel";
+
+interface StudyChatProps {
+  onAddHistory: (item: HistoryItem) => void;
+  activeDocName?: string;
+  initialQuery?: string;
+}
+
+export default function StudyChat({
+  onAddHistory,
+  activeDocName = "Machine Learning Notes",
+  initialQuery = "",
+}: StudyChatProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Active QA State
+  const [currentResult, setCurrentResult] = useState<{
+    question: string;
+    answer: string;
+    sources: SourceItem[];
+    timestamp: string;
+  } | null>(null);
+
+  // Handle Asking Question
+  const handleAsk = async (textToAsk?: string) => {
+    const questionText = (textToAsk !== undefined ? textToAsk : query).trim();
+    if (!questionText || isLoading) return;
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: questionText,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to retrieve an answer from StudyMate.");
+      }
+
+      const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const newResult = {
+        question: questionText,
+        answer: data.answer || "No answer generated.",
+        sources: (data.sources || []).map(
+          (s: { chunk_index?: number; similarity?: number; text?: string; document_name?: string }) => ({
+            chunk_index: s.chunk_index ?? 0,
+            similarity: s.similarity ?? 0.85,
+            text: s.text || "",
+            document_name: s.document_name || activeDocName || "Study Document",
+          })
+        ),
+        timestamp,
+      };
+
+      setCurrentResult(newResult);
+
+      // Save into history
+      onAddHistory({
+        id: `qa-${Date.now()}`,
+        question: questionText,
+        answer: newResult.answer,
+        sources: newResult.sources,
+        timestamp,
+        documentName: activeDocName,
+      });
+
+      // Clear input on success
+      setQuery("");
+    } catch (err: unknown) {
+      console.error("Ask query error:", err);
+      const errorMessageText =
+        err instanceof Error
+          ? err.message
+          : "StudyMate couldn't generate an answer right now. Please try again.";
+      setErrorMessage(errorMessageText);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectPrompt = (prompt: string) => {
+    setQuery(prompt);
+    handleAsk(prompt);
+  };
+
+  const handleResetChat = () => {
+    setCurrentResult(null);
+    setErrorMessage(null);
+    setQuery("");
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Main Interactive Chat Card */}
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm">
+        {/* Card Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+              <MessageSquare className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                Ask your StudyMate
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Ask anything from your uploaded study material.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Active Document Indicator */}
+            <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3 py-1.5 text-xs text-slate-600">
+              <BookOpen className="h-3.5 w-3.5 text-blue-600" />
+              <span className="font-semibold text-slate-800">{activeDocName}</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" title="Vectorized and ready" />
+            </div>
+
+            {currentResult && (
+              <button
+                type="button"
+                onClick={handleResetChat}
+                className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                title="Start a new question"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">New Question</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Center Area */}
+        <div className="py-6">
+          {/* 1. Loading State */}
+          {isLoading && <LoadingState />}
+
+          {/* 2. Error State */}
+          {!isLoading && errorMessage && (
+            <ErrorState
+              message={errorMessage}
+              onRetry={() => handleAsk(currentResult?.question || query)}
+            />
+          )}
+
+          {/* 3. Answer Display */}
+          {!isLoading && !errorMessage && currentResult && (
+            <AnswerCard
+              question={currentResult.question}
+              answer={currentResult.answer}
+              sources={currentResult.sources}
+              timestamp={currentResult.timestamp}
+              onAskFollowUp={(followUp) => {
+                setQuery(followUp);
+                handleAsk(followUp);
+              }}
+            />
+          )}
+
+          {/* 4. Empty State */}
+          {!isLoading && !errorMessage && !currentResult && (
+            <EmptyState onSelectPrompt={handleSelectPrompt} />
+          )}
+        </div>
+
+        {/* Question Input Section */}
+        <div className="border-t border-slate-100 pt-5">
+          <QuestionInput
+            value={query}
+            onChange={setQuery}
+            onSubmit={() => handleAsk()}
+            isLoading={isLoading}
+            placeholder="Ask a question about your study material..."
+          />
+
+          {/* Example prompts if an answer is currently showing */}
+          {currentResult && !isLoading && (
+            <div className="mt-4 pt-2">
+              <ExampleQuestions onSelect={handleSelectPrompt} disabled={isLoading} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
