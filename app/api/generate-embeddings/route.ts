@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { pipeline } from "@xenova/transformers";
+import { GoogleGenAI } from "@google/genai";
 
-let extractor: any = null;
-
-async function getExtractor() {
-  if (!extractor) {
-    extractor = await pipeline(
-      "feature-extraction",
-      "Xenova/all-MiniLM-L6-v2"
-    );
-  }
-
-  return extractor;
-}
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 export async function POST() {
   try {
     const supabase = await createClient();
 
-    // 1. Get document chunks
+    // 1. Get document chunks that do not have embeddings yet
     const { data: chunks, error: chunksError } = await supabase
       .from("document_chunks")
       .select("id, chunk_text")
@@ -44,19 +35,25 @@ export async function POST() {
       });
     }
 
-    // 2. Load embedding model
-    const model = await getExtractor();
-
-    // 3. Generate embeddings
+    // 2. Generate Gemini embeddings
     for (const chunk of chunks) {
-      const output = await model(chunk.chunk_text, {
-        pooling: "mean",
-        normalize: true,
+      const response = await ai.models.embedContent({
+        model: "gemini-embedding-001",
+        contents: chunk.chunk_text,
+        config: {
+          outputDimensionality: 768,
+        },
       });
 
-      const embedding = Array.from(output.data);
+      const embedding = response.embeddings?.[0]?.values;
 
-      // 4. Save embedding
+      if (!embedding || embedding.length !== 768) {
+        throw new Error(
+          `Failed to generate a valid 768-dimensional embedding for chunk ${chunk.id}.`
+        );
+      }
+
+      // 3. Save embedding
       const { error: updateError } = await supabase
         .from("document_chunks")
         .update({

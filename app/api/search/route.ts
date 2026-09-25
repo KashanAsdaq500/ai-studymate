@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { pipeline } from "@xenova/transformers";
+import { GoogleGenAI } from "@google/genai";
 
-let extractor: any = null;
-
-async function getExtractor() {
-  if (!extractor) {
-    extractor = await pipeline(
-      "feature-extraction",
-      "Xenova/all-MiniLM-L6-v2"
-    );
-  }
-
-  return extractor;
-}
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 export async function POST(request: Request) {
   try {
@@ -32,15 +23,22 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
 
-    // 1. Convert user's question into an embedding
-    const model = await getExtractor();
-
-    const output = await model(query, {
-      pooling: "mean",
-      normalize: true,
+    // 1. Convert user's question into a Gemini embedding
+    const embeddingResponse = await ai.models.embedContent({
+      model: "gemini-embedding-001",
+      contents: query,
+      config: {
+        outputDimensionality: 768,
+      },
     });
 
-    const queryEmbedding = Array.from(output.data);
+    const queryEmbedding = embeddingResponse.embeddings?.[0]?.values;
+
+    if (!queryEmbedding || queryEmbedding.length !== 768) {
+      throw new Error(
+        "Failed to generate a valid 768-dimensional query embedding."
+      );
+    }
 
     // 2. Search for the most relevant document chunks
     const { data, error } = await supabase.rpc(

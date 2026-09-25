@@ -1,20 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import mammoth from "mammoth";
-import { pipeline } from "@xenova/transformers";
+import { GoogleGenAI } from "@google/genai";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let extractor: any = null;
-
-async function getExtractor() {
-  if (!extractor) {
-    extractor = await pipeline(
-      "feature-extraction",
-      "Xenova/all-MiniLM-L6-v2"
-    );
-  }
-  return extractor;
-}
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 function splitIntoChunks(text: string, chunkSize = 1000, overlap = 150) {
   const chunks: string[] = [];
@@ -100,20 +91,45 @@ export async function POST(request: Request) {
         );
       }
     } else if (extension === "pdf") {
+      let parser: {
+        getText: () => Promise<{ text?: string }>;
+        destroy?: () => Promise<void>;
+      } | null = null;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfModule = require("pdf-parse");
-        const PDFParseClass = pdfModule.PDFParse || pdfModule.default?.PDFParse || pdfModule;
-        if (typeof PDFParseClass === "function" && PDFParseClass.prototype?.getText) {
-          const parser = new PDFParseClass({ data: fileBuffer });
-          const textResult = await parser.getText();
-          extractedText = (textResult.text || "").trim();
-        } else if (typeof pdfModule === "function") {
-          const pdfData = await pdfModule(fileBuffer);
-          extractedText = (pdfData.text || "").trim();
-        } else {
-          throw new Error("PDF parser class not found");
+        const { createRequire } = await import("module");
+        const nodeRequire = createRequire(process.cwd() + "/package.json");
+
+        // Ensure DOMMatrix is available in the Node runtime for pdf-parse
+        if (!(globalThis as unknown as { DOMMatrix?: unknown }).DOMMatrix) {
+          try {
+            const canvas = nodeRequire("@napi-rs/canvas");
+            if (canvas?.DOMMatrix) {
+              (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = canvas.DOMMatrix;
+            }
+          } catch {
+            // Ignore if native canvas is already loaded or unavailable
+          }
         }
+
+        const { PDFParse } = nodeRequire("pdf-parse");
+        const parserInstance = new PDFParse({ data: fileBuffer });
+        parser = parserInstance;
+        const textResult = await parserInstance.getText();
+        const rawText = (textResult?.text || "").trim();
+
+        // Strip page marker lines (e.g. "-- 1 of 3 --") to verify real readable text exists
+        const meaningfulText = rawText.replace(/--\s*\d+\s+of\s+\d+\s*--/g, "").trim();
+        if (!meaningfulText) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "No extractable text found in the uploaded PDF. Scanned or image-only PDFs are not supported without OCR.",
+            },
+            { status: 400 }
+          );
+        }
+
+        extractedText = rawText;
       } catch (pdfErr) {
         console.error("PDF extraction error:", pdfErr);
         return NextResponse.json(
@@ -123,6 +139,14 @@ export async function POST(request: Request) {
           },
           { status: 400 }
         );
+      } finally {
+        if (parser && typeof parser.destroy === "function") {
+          try {
+            await parser.destroy();
+          } catch {
+            // Ignore parser cleanup errors
+          }
+        }
       }
     }
 
@@ -205,17 +229,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Generate embeddings using Xenova/all-MiniLM-L6-v2
-    const model = await getExtractor();
+    // 6. Generate embeddings using Gemini Embeddings
     const chunkRows = [];
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkText = chunks[i];
-      const output = await model(chunkText, {
-        pooling: "mean",
-        normalize: true,
+
+      const response = await ai.models.embedContent({
+        model: "gemini-embedding-001",
+        contents: chunkText,
+        config: {
+          outputDimensionality: 768,
+        },
       });
-      const embedding = Array.from(output.data);
+
+      const embedding = response.embeddings?.[0]?.values;
+
+      if (!embedding || embedding.length !== 768) {
+        throw new Error(
+          `Failed to generate a valid 768-dimensional embedding for chunk ${i}.`
+        );
+      }
 
       chunkRows.push({
         document_id: createdDocumentId,
@@ -287,3 +321,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
