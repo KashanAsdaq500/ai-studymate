@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+import { FileText, ChevronDown, ChevronUp, Copy, Check, Sparkles } from "lucide-react";
 
 export interface SourceItem {
   chunk_index: number;
@@ -32,7 +32,6 @@ export default function SourceCard({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  // Text preview length
   const previewLimit = 160;
   const isLong = source.text.length > previewLimit;
   const displayText = isExpanded || !isLong
@@ -42,22 +41,24 @@ export default function SourceCard({
   return (
     <div
       onClick={() => isLong && setIsExpanded(!isExpanded)}
-      className={`group rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 transition-all ${
-        isLong ? "cursor-pointer hover:border-blue-200 hover:shadow-xs" : ""
+      className={`group rounded-2xl border border-slate-200/90 bg-white p-4 transition-all duration-200 ${
+        isLong
+          ? "cursor-pointer hover:border-teal-300 hover:shadow-xs hover:-translate-y-0.5"
+          : "hover:border-slate-300"
       }`}
     >
       {/* Header Info */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-teal-50 to-blue-50 border border-teal-100 text-teal-700 shadow-2xs">
             <FileText className="h-4 w-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-900">
+              <span className="text-xs font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
                 {documentName}
               </span>
-              <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 border border-slate-200/70">
                 Chunk {source.chunk_index}
               </span>
             </div>
@@ -67,17 +68,18 @@ export default function SourceCard({
         {/* Relevance Badge & Actions */}
         <div className="flex items-center gap-2">
           <span
-            className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700 ring-1 ring-inset ring-teal-600/20"
-            title={`Similarity score: ${source.similarity}`}
+            className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-teal-50 to-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-teal-800 ring-1 ring-inset ring-teal-600/20 shadow-2xs"
+            title={`Vector similarity score: ${source.similarity}`}
           >
-            {similarityPercent > 0 ? `${similarityPercent}% relevance` : "Relevant source"}
+            <Sparkles className="h-2.5 w-2.5 text-teal-600" />
+            <span>{similarityPercent > 0 ? `${similarityPercent}% relevance` : "Relevant source"}</span>
           </span>
 
           <button
             type="button"
             onClick={handleCopy}
             title="Copy source text"
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
           >
             {isCopied ? (
               <Check className="h-3.5 w-3.5 text-teal-600" />
@@ -89,8 +91,8 @@ export default function SourceCard({
           {isLong && (
             <button
               type="button"
-              className="text-slate-400 group-hover:text-slate-600 transition-colors"
-              aria-label={isExpanded ? "Collapse source text" : "Expand source text"}
+              className="text-slate-400 group-hover:text-slate-700 transition-colors"
+              aria-label={isExpanded ? "Collapse source context" : "Expand source context"}
             >
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -103,14 +105,14 @@ export default function SourceCard({
       </div>
 
       {/* Snippet text */}
-      <div className="mt-2.5 rounded-lg bg-slate-50/80 p-2.5 text-xs text-slate-600 font-mono leading-relaxed border border-slate-100">
-        <p className="whitespace-pre-wrap font-sans text-xs text-slate-700 leading-normal">
+      <div className="mt-3 rounded-xl bg-slate-50/90 p-3 text-xs text-slate-700 font-mono leading-relaxed border border-slate-200/70">
+        <p className="whitespace-pre-wrap font-sans text-xs text-slate-700 leading-relaxed">
           {displayText}
         </p>
 
         {isLong && (
-          <div className="mt-1.5 flex justify-end">
-            <span className="text-[11px] font-semibold text-blue-600 hover:underline">
+          <div className="mt-2 flex justify-end">
+            <span className="text-[11px] font-bold text-teal-700 hover:text-teal-800 hover:underline">
               {isExpanded ? "Show less context" : "Show full extracted chunk"}
             </span>
           </div>

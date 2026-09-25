@@ -130,7 +130,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] bg-mesh-study">
       {/* 1. Top Navbar */}
       <Navbar
         activeTab={activeTab}

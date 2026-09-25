@@ -9,10 +9,26 @@ interface ExampleQuestionsProps {
 }
 
 export const EXAMPLE_QUESTIONS = [
-  "What is machine learning?",
-  "Explain supervised learning",
-  "What are the types of ML?",
-  "Explain this like I'm a beginner",
+  {
+    text: "What is machine learning?",
+    dotColor: "bg-blue-500",
+    borderClass: "border-blue-200/90 hover:border-blue-400 hover:bg-blue-50/70 hover:text-blue-800",
+  },
+  {
+    text: "Explain supervised learning",
+    dotColor: "bg-teal-500",
+    borderClass: "border-teal-200/90 hover:border-teal-400 hover:bg-teal-50/70 hover:text-teal-800",
+  },
+  {
+    text: "What are the types of ML?",
+    dotColor: "bg-purple-500",
+    borderClass: "border-purple-200/90 hover:border-purple-400 hover:bg-purple-50/70 hover:text-purple-800",
+  },
+  {
+    text: "Explain this like I'm a beginner",
+    dotColor: "bg-amber-500",
+    borderClass: "border-amber-200/90 hover:border-amber-400 hover:bg-amber-50/70 hover:text-amber-900",
+  },
 ];
 
 export default function ExampleQuestions({ onSelect, disabled }: ExampleQuestionsProps) {
@@ -25,18 +41,17 @@ export default function ExampleQuestions({ onSelect, disabled }: ExampleQuestion
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {EXAMPLE_QUESTIONS.map((question) => (
+      <div className="flex flex-wrap gap-2.5">
+        {EXAMPLE_QUESTIONS.map((item) => (
           <button
-            key={question}
+            key={item.text}
             type="button"
             disabled={disabled}
-            onClick={() => onSelect(question)}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-medium text-slate-700 shadow-2xs hover:border-blue-400 hover:bg-blue-50/60 hover:text-blue-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            onClick={() => onSelect(item.text)}
+            className={`group inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-1.5 text-xs sm:text-sm font-medium text-slate-700 shadow-2xs transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:-translate-y-0.5 hover:shadow-xs ${item.borderClass}`}
           >
-            <span className="text-slate-400 group-hover:text-blue-500 font-normal">“</span>
-            <span>{question}</span>
-            <span className="text-slate-400 group-hover:text-blue-500 font-normal">”</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${item.dotColor} transition-transform group-hover:scale-125`} />
+            <span>{item.text}</span>
           </button>
         ))}
       </div>

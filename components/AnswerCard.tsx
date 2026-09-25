@@ -42,10 +42,11 @@ export default function AnswerCard({
     const flushBullets = (key: string) => {
       if (currentBullets.length > 0) {
         elements.push(
-          <ul key={key} className="my-2.5 space-y-1.5 pl-5 list-disc text-slate-700">
+          <ul key={key} className="my-3 space-y-2 pl-2">
             {currentBullets.map((bullet, i) => (
-              <li key={i} className="text-sm leading-relaxed pl-1">
-                {renderInlineMarkdown(bullet)}
+              <li key={i} className="flex items-start gap-2.5 text-sm sm:text-base leading-relaxed text-slate-800">
+                <span className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 shrink-0 mt-2" />
+                <span className="flex-1">{renderInlineMarkdown(bullet)}</span>
               </li>
             ))}
           </ul>
@@ -62,8 +63,9 @@ export default function AnswerCard({
         flushBullets(`bullets-before-h3-${index}`);
         const headingText = trimmed.replace(/^#+\s*/, "");
         elements.push(
-          <h4 key={`h3-${index}`} className="mt-4 mb-2 text-base font-bold text-slate-900">
-            {headingText}
+          <h4 key={`h3-${index}`} className="mt-4 mb-2 text-base font-bold text-slate-900 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+            <span>{headingText}</span>
           </h4>
         );
       }
@@ -72,7 +74,7 @@ export default function AnswerCard({
         flushBullets(`bullets-before-h2-${index}`);
         const headingText = trimmed.replace(/^#+\s*/, "");
         elements.push(
-          <h3 key={`h2-${index}`} className="mt-5 mb-2 text-lg font-bold text-slate-900 border-b border-slate-100 pb-1">
+          <h3 key={`h2-${index}`} className="mt-5 mb-2.5 text-lg font-bold text-slate-900 border-b border-indigo-100 pb-1.5">
             {headingText}
           </h3>
         );
@@ -86,9 +88,9 @@ export default function AnswerCard({
       else if (/^\d+\.\s+/.test(trimmed)) {
         flushBullets(`bullets-before-num-${index}`);
         elements.push(
-          <div key={`num-${index}`} className="my-1.5 flex items-start gap-2.5 text-sm text-slate-700 leading-relaxed">
-            <span className="font-semibold text-blue-600 shrink-0 select-none">
-              {trimmed.match(/^\d+\./)?.[0]}
+          <div key={`num-${index}`} className="my-2 flex items-start gap-3 text-sm sm:text-base text-slate-800 leading-relaxed">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-100 font-semibold text-xs text-blue-700 shrink-0 select-none mt-0.5">
+              {trimmed.match(/^\d+/)?.[0]}
             </span>
             <div className="flex-1">
               {renderInlineMarkdown(trimmed.replace(/^\d+\.\s+/, ""))}
@@ -104,7 +106,7 @@ export default function AnswerCard({
       else {
         flushBullets(`bullets-before-p-${index}`);
         elements.push(
-          <p key={`p-${index}`} className="my-2.5 text-sm sm:text-base leading-relaxed text-slate-700">
+          <p key={`p-${index}`} className="my-2.5 text-sm sm:text-base leading-relaxed text-slate-800">
             {renderInlineMarkdown(trimmed)}
           </p>
         );
@@ -118,13 +120,12 @@ export default function AnswerCard({
 
   // Helper for inline bold, italic, code tags
   const renderInlineMarkdown = (text: string): React.ReactNode => {
-    // Replace **bold**
     const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
 
     return parts.map((part, index) => {
       if (part.startsWith("**") && part.endsWith("**")) {
         return (
-          <strong key={index} className="font-semibold text-slate-900">
+          <strong key={index} className="font-bold text-slate-950">
             {part.slice(2, -2)}
           </strong>
         );
@@ -132,7 +133,7 @@ export default function AnswerCard({
         return (
           <code
             key={index}
-            className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-xs font-medium text-blue-800 border border-slate-200"
+            className="rounded-md bg-indigo-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-indigo-700 border border-indigo-100"
           >
             {part.slice(1, -1)}
           </code>
@@ -143,33 +144,33 @@ export default function AnswerCard({
   };
 
   return (
-    <div className="w-full space-y-4 animate-fade-in">
+    <div className="w-full space-y-5 animate-fade-in">
       {/* 1. User Question Card */}
       <div className="flex items-start justify-end gap-2.5">
-        <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-xs bg-blue-600 px-4 py-3 text-white shadow-xs">
-          <div className="flex items-center gap-1.5 mb-1 text-[11px] font-medium text-blue-100">
-            <User className="h-3 w-3" />
+        <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl rounded-tr-md bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-5 py-3.5 text-white shadow-sm shadow-indigo-500/20">
+          <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold text-blue-100 uppercase tracking-wider">
+            <User className="h-3.5 w-3.5" />
             <span>Your Question</span>
-            {timestamp && <span className="text-blue-200">• {timestamp}</span>}
+            {timestamp && <span className="text-blue-200/90 font-normal">• {timestamp}</span>}
           </div>
           <p className="text-sm sm:text-base font-medium leading-relaxed">{question}</p>
         </div>
       </div>
 
       {/* 2. AI Answer Card */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs">
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow duration-200">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-              <Sparkles className="h-4.5 w-4.5 text-blue-600" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-xs">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 leading-tight">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                 StudyMate Answer
               </h3>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/80 shadow-2xs">
                   <CheckCircle2 className="h-3 w-3 text-teal-600" />
                   Based on your study material
                 </span>
@@ -177,21 +178,21 @@ export default function AnswerCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               title="Copy answer"
             >
               {copied ? (
                 <>
                   <Check className="h-3.5 w-3.5 text-teal-600" />
-                  <span className="text-teal-700 font-semibold">Copied</span>
+                  <span className="text-teal-700 font-bold">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="h-3.5 w-3.5" />
+                  <Copy className="h-3.5 w-3.5 text-slate-500" />
                   <span>Copy</span>
                 </>
               )}
@@ -200,23 +201,23 @@ export default function AnswerCard({
         </div>
 
         {/* Answer Content */}
-        <div className="pt-4 text-slate-800">
+        <div className="pt-5 text-slate-800 text-base leading-relaxed">
           {renderFormattedAnswer(answer)}
         </div>
 
         {/* Follow-up question chips */}
         {onAskFollowUp && (
-          <div className="mt-6 border-t border-slate-100 pt-4">
-            <p className="text-xs font-semibold text-slate-500 mb-2">Continue learning:</p>
+          <div className="mt-7 border-t border-slate-100 pt-4">
+            <p className="text-xs font-bold text-slate-500 mb-2.5 uppercase tracking-wide">Continue learning:</p>
             <div className="flex flex-wrap gap-2">
               {followUpSuggestions.map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => onAskFollowUp(item)}
-                  className="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50/70 hover:bg-blue-100/80 px-2.5 py-1 rounded-lg transition-colors border border-blue-100"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/80 px-3 py-1.5 rounded-xl transition-all border border-indigo-200/60 shadow-2xs active:scale-[0.98]"
                 >
                   <span>{item}</span>
-                  <ChevronRight className="h-3 w-3" />
+                  <ChevronRight className="h-3 w-3 text-indigo-500" />
                 </button>
               ))}
             </div>
@@ -226,23 +227,25 @@ export default function AnswerCard({
 
       {/* 3. Sources Section */}
       {sources && sources.length > 0 && (
-        <div className="mt-4 pt-2">
-          <div className="mb-2.5 flex items-center justify-between px-1">
+        <div className="mt-5 pt-2">
+          <div className="mb-3 flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-teal-600" />
-              <h4 className="text-xs font-bold tracking-wide uppercase text-slate-600">
+              <div className="flex h-5 w-5 items-center justify-center rounded-md bg-teal-100 text-teal-700">
+                <BookOpen className="h-3 w-3" />
+              </div>
+              <h4 className="text-xs font-bold tracking-wide uppercase text-slate-700">
                 Sources from your study material
               </h4>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-[11px] font-bold text-teal-800">
                 {sources.length} {sources.length === 1 ? "chunk" : "chunks"}
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 hidden sm:inline">
+            <span className="text-[11px] text-slate-500 hidden sm:inline font-medium">
               Exact passages retrieved for grounding
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5">
+          <div className="grid grid-cols-1 gap-3">
             {sources.map((src, idx) => (
               <SourceCard key={idx} source={src} />
             ))}

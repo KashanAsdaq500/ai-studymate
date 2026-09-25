@@ -4,8 +4,10 @@
   --background: #F8FAFC;
   --foreground: #0F172A;
   --primary: #2563EB;
+  --indigo: #4F46E5;
+  --purple: #7C3AED;
   --teal: #0D9488;
-  --accent: #FBBF24;
+  --accent: #F59E0B;
 }
 
 @theme inline {
@@ -21,6 +23,14 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle background aura mesh */
+.bg-mesh-study {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 30%, rgba(13, 148, 136, 0.04) 0px, transparent 60%);
 }
 
 /* Custom subtle scrollbar */
@@ -56,7 +66,16 @@ body {
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.65;
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
   }
 }
 
@@ -65,5 +84,10 @@ body {
 }
 
 .animate-pulse-gentle {
-  animation: pulseGently 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulseGently 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+

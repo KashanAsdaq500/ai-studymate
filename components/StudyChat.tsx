@@ -114,11 +114,11 @@ export default function StudyChat({
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       {/* Main Interactive Chat Card */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow duration-200">
         {/* Card Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs">
               <MessageSquare className="h-5 w-5" />
             </div>
             <div>
@@ -133,17 +133,20 @@ export default function StudyChat({
 
           <div className="flex items-center gap-2">
             {/* Active Document Indicator */}
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3 py-1.5 text-xs text-slate-600">
+            <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-200/80 px-3.5 py-1.5 text-xs text-slate-700 shadow-2xs">
               <BookOpen className="h-3.5 w-3.5 text-blue-600" />
-              <span className="font-semibold text-slate-800">{activeDocName}</span>
-              <span className="h-2 w-2 rounded-full bg-emerald-500" title="Vectorized and ready" />
+              <span className="font-bold text-slate-900">{activeDocName}</span>
+              <span className="relative flex h-2 w-2 ml-0.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
             </div>
 
             {currentResult && (
               <button
                 type="button"
                 onClick={handleResetChat}
-                className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all shadow-2xs"
                 title="Start a new question"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
