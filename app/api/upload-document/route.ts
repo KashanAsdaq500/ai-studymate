@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import mammoth from "mammoth";
 import { GoogleGenAI } from "@google/genai";
+
+export const runtime = "nodejs";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -95,35 +97,33 @@ export async function POST(request: Request) {
         getText: () => Promise<{ text?: string }>;
         destroy?: () => Promise<void>;
       } | null = null;
+
       try {
-        const { createRequire } = await import("module");
-        const nodeRequire = createRequire(process.cwd() + "/package.json");
+        // pdf-parse worker must be loaded before PDFParse in Next.js/Vercel
+        const { CanvasFactory } = await import("pdf-parse/worker");
+        const { PDFParse } = await import("pdf-parse");
 
-        // Ensure DOMMatrix is available in the Node runtime for pdf-parse
-        if (!(globalThis as unknown as { DOMMatrix?: unknown }).DOMMatrix) {
-          try {
-            const canvas = nodeRequire("@napi-rs/canvas");
-            if (canvas?.DOMMatrix) {
-              (globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = canvas.DOMMatrix;
-            }
-          } catch {
-            // Ignore if native canvas is already loaded or unavailable
-          }
-        }
+        const parserInstance = new PDFParse({
+          data: fileBuffer,
+          CanvasFactory,
+        });
 
-        const { PDFParse } = nodeRequire("pdf-parse");
-        const parserInstance = new PDFParse({ data: fileBuffer });
         parser = parserInstance;
+
         const textResult = await parserInstance.getText();
         const rawText = (textResult?.text || "").trim();
 
-        // Strip page marker lines (e.g. "-- 1 of 3 --") to verify real readable text exists
-        const meaningfulText = rawText.replace(/--\s*\d+\s+of\s+\d+\s*--/g, "").trim();
+        // Remove page marker lines such as "-- 1 of 3 --"
+        const meaningfulText = rawText
+          .replace(/--\s*\d+\s+of\s+\d+\s*--/g, "")
+          .trim();
+
         if (!meaningfulText) {
           return NextResponse.json(
             {
               success: false,
-              error: "No extractable text found in the uploaded PDF. Scanned or image-only PDFs are not supported without OCR.",
+              error:
+                "No extractable text found in the uploaded PDF. Scanned or image-only PDFs are not supported without OCR.",
             },
             { status: 400 }
           );
@@ -132,6 +132,7 @@ export async function POST(request: Request) {
         extractedText = rawText;
       } catch (pdfErr) {
         console.error("PDF extraction error:", pdfErr);
+
         return NextResponse.json(
           {
             success: false,
@@ -321,5 +322,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
 
