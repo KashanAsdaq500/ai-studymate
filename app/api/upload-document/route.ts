@@ -40,6 +40,15 @@ export async function POST(request: Request) {
   try {
     supabase = await createClient();
 
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
     // 1. Validate Form Data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -196,6 +205,7 @@ export async function POST(request: Request) {
         file_name: fileName,
         file_url: uploadedStoragePath,
         content: extractedText,
+        user_id: user.id,
       })
       .select("id, title, file_name, created_at")
       .single();
@@ -322,6 +332,10 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+
+
 
 
 

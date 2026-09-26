@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenAI } from "@google/genai";
 
@@ -82,7 +82,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();    
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required.",
+        },
+        { status: 401 }
+      );
+    }
     // 1. Convert user's question into a Gemini embedding
     const embeddingResponse = await ai.models.embedContent({
       model: "gemini-embedding-001",
@@ -148,7 +163,49 @@ export async function POST(request: Request) {
     }
 
     // 4. Combine and deduplicate chunks by ID and text content
-    const combinedChunks = [...initialChunks, ...supplementaryChunks];
+    // Defense-in-depth: only allow chunks belonging to the logged-in user.
+    const candidateDocumentIds = Array.from(
+      new Set(
+        [...initialChunks, ...supplementaryChunks]
+          .map((chunk) => chunk.document_id)
+          .filter(Boolean)
+      )
+    );
+
+    let ownedDocumentIds = new Set<string>();
+
+    if (candidateDocumentIds.length > 0) {
+      const { data: ownedDocuments, error: ownershipError } = await supabase
+        .from("study_documents")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("id", candidateDocumentIds);
+
+      if (ownershipError) {
+        console.error("Ownership verification error:", ownershipError);
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to verify document ownership.",
+          },
+          { status: 500 }
+        );
+      }
+
+      ownedDocumentIds = new Set(
+        (ownedDocuments || []).map((document) => document.id)
+      );
+    }
+
+    const ownedInitialChunks = initialChunks.filter((chunk) =>
+      ownedDocumentIds.has(chunk.document_id)
+    );
+
+    const ownedSupplementaryChunks = supplementaryChunks.filter((chunk) =>
+      ownedDocumentIds.has(chunk.document_id)
+    );
+    const combinedChunks = [...ownedInitialChunks, ...ownedSupplementaryChunks];
     const seenTexts = new Set<string>();
     const chunks: DocumentChunk[] = [];
     for (const c of combinedChunks) {
@@ -167,7 +224,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Prepare retrieved material for Gemini (capped to at most 14 chunks)
+    // 6. Prepare retrieved material for Gemini (capped to at most 14 chunks)
     const contextChunks = chunks.slice(0, 14);
     const context = contextChunks
       .map(
@@ -177,7 +234,7 @@ export async function POST(request: Request) {
       .join("\n\n");
 
     // 6. Create Gemini client
-// 7. Ask Gemini to answer only from retrieved material
+// 8. Ask Gemini to answer only from retrieved material
     const prompt = `
 You are AI StudyMate, an AI study assistant.
 
@@ -234,7 +291,7 @@ ${context}
 
     const answer = response.text || "No answer was generated.";
 
-    // 8. Return answer and source chunks
+    // 9. Return answer and source chunks
     const docIds = Array.from(
       new Set(contextChunks.map((c) => c.document_id).filter(Boolean))
     );
@@ -243,6 +300,7 @@ ${context}
       const { data: docs } = await supabase
         .from("study_documents")
         .select("id, title, file_name")
+        .eq("user_id", user.id)
         .in("id", docIds);
       if (docs) {
         for (const d of docs) {
@@ -276,4 +334,11 @@ ${context}
     );
   }
 }
+
+
+
+
+
+
+
 
